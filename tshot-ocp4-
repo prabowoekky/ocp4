@@ -44,6 +44,11 @@ ExecStart=/usr/bin/hyperkube \
       --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice
 
 
+
+
+##
+# sudo systemctl daemon-reload
+# sudo systemctl restart kubelet
 Restart=always
 RestartSec=10
 
