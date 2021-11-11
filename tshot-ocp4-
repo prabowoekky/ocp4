@@ -1,0 +1,51 @@
+issue:
+- Failed to get system container stats for "/system.slice/kubelet.service
+- Error syncing pod 0920de8b-615d-4751-b3c9-6cd1e0e57d2e ("ingress-operator-7f79f75dd6-fjls6_openshift-ingress-operator(0920de8b-615d-4751-b3c9-6cd1e0e57d2e)"), skipping: failed to "StartContainer" for "ingress-operator" with CrashLoopBackOff
+
+
+
+[root@ocp-gpqqt-master-0 ~]# cat /etc/systemd/system/kubelet.service
+[Unit]
+Description=Kubernetes Kubelet
+Wants=rpc-statd.service network-online.target crio.service
+After=network-online.target crio.service
+After=ostree-finalize-staged.service
+
+[Service]
+Type=notify
+ExecStartPre=/bin/mkdir --parents /etc/kubernetes/manifests
+ExecStartPre=/bin/rm -f /var/lib/kubelet/cpu_manager_state
+EnvironmentFile=/etc/os-release
+EnvironmentFile=-/etc/kubernetes/kubelet-workaround
+EnvironmentFile=-/etc/kubernetes/kubelet-env
+CPUAccounting=true
+MemoryAccounting=true
+After=docker.service
+ExecStartPre=/bin/sleep 10
+
+ExecStart=/usr/bin/hyperkube \
+    kubelet \
+      --config=/etc/kubernetes/kubelet.conf \
+      --bootstrap-kubeconfig=/etc/kubernetes/kubeconfig \
+      --kubeconfig=/var/lib/kubelet/kubeconfig \
+      --container-runtime=remote \
+      --container-runtime-endpoint=/var/run/crio/crio.sock \
+      --runtime-cgroups=/system.slice/crio.service \
+      --node-labels=node-role.kubernetes.io/master,node.openshift.io/os_id=${ID} \
+      --node-ip=${KUBELET_NODE_IP} \
+      --address=${KUBELET_NODE_IP} \
+      --minimum-container-ttl-duration=6m0s \
+      --cloud-provider=openstack \
+      --volume-plugin-dir=/etc/kubernetes/kubelet-plugins/volume/exec \
+      --cloud-config=/etc/kubernetes/cloud.conf \
+      --register-with-taints=node-role.kubernetes.io/master=:NoSchedule \
+      --pod-infra-container-image=quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:dd4d47c77836319287ca2c052c8b5d5deceba3f15f093fb28ab5c6f86f1c9a22 \
+      --v=${KUBELET_LOG_LEVEL} \
+      --runtime-cgroups=/systemd/system.slice --kubelet-cgroups=/systemd/system.slice
+
+
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
